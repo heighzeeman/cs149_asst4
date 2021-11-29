@@ -59,9 +59,9 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 		
 		#pragma omp parallel for reduction(+:curr_tele_add)
 		for (int i = 0; i < numSinks; ++i) {
-			curr_tele_add += solution[sinks[i]];
+			curr_tele_add += solution[sinks[i]] * damp_coeff;
  		}
-		curr_tele_add *= damp_coeff;
+		//curr_tele_add *= damp_coeff;
 		
 		#pragma omp parallel for schedule(guided) reduction(+:curr)
 		for (int i = 0; i < numNodes; ++i) {
@@ -70,9 +70,9 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 			const Vertex* start = incoming_begin(g, i);
 			const Vertex* end = incoming_end(g, i);
 			for (const Vertex* v = start; v != end; v++) {
-				new_score += solution[*v] / outgoing_size(g, *v);
+				new_score += damping * solution[*v] / outgoing_size(g, *v);
 			}
-			new_score = (new_score * damping) + tele_coeff + curr_tele_add;
+			new_score = new_score + tele_coeff + curr_tele_add;
 			curr += fabs(new_score - solution[i]);
 			new_scores[i] = new_score;
 		}
