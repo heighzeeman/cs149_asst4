@@ -43,7 +43,7 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 			++numSinks;
 		}
     }
-	sinksSum = damp_coeff * numSinks;
+	sinksSum = damp_coeff * numSinks / numNodes;
 	
 	while (true) {
 		double diff = 0.0;
