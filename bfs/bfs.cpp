@@ -33,14 +33,14 @@ void top_down_step(
     int* distances,
 	vertex_set* scratch)
 {
-	std::atomic<int> idx(new_frontier->count);
+//	std::atomic<int> idx(new_frontier->count);
 //	int* []
 	
 	#pragma omp parallel for schedule(dynamic, 128) if (omp_get_max_threads() > 1)
     for (int i=0; i<frontier->count; i++) {
         int node = frontier->vertices[i];
 		vertex_set local = scratch[omp_get_thread_num()];
-
+	local.count = 0;
         int start_edge = g->outgoing_starts[node];
         int end_edge = (node == g->num_nodes - 1)
                            ? g->num_edges
@@ -50,20 +50,23 @@ void top_down_step(
         for (int neighbor=start_edge; neighbor<end_edge; neighbor++) {
             int outgoing = g->outgoing_edges[neighbor];
 
-            if (distances[outgoing] == NOT_VISITED_MARKER) {
-				distances[outgoing] = distances[node] + 1;
+            if (distances[outgoing] == NOT_VISITED_MARKER)/* && 
+		__sync_bool_compare_and_swap(&distances[outgoing], NOT_VISITED_MARKER, distances[node]+1))*/ {
+		distances[outgoing] = distances[node] + 1;
                 local.vertices[local.count++] = outgoing;
             }
         }
-		
-		#pragma omp critical
+		int oldcount;
+		#pragma omp atomic capture
 		{
-			for (int j = 0; j < local.count; ++j) new_frontier->vertices[new_frontier->count + j] = local.vertices[j];
-            new_frontier->count += local.count;
+			oldcount = new_frontier->count;
+			new_frontier->count += local.count;
 		}
+	for (int j = 0; j < local.count; ++j) new_frontier->vertices[oldcount + j] = local.vertices[j];
+
     }
 	
-	new_frontier->count = idx;
+//	new_frontier->count = idx;
 }
 
 // Implements top-down BFS.
