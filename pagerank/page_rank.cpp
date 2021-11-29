@@ -27,55 +27,50 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
     int numNodes = num_nodes(g);
     double equal_prob = 1.0 / numNodes;
 	double damp_coeff = damping / numNodes;
-	double tele_coeff = (1.0 - damping) / numNodes;
-    int* sinks((int*)malloc(numNodes * sizeof(int)));
-    int numSinks = 0;
+	double stat_coeff = (1.0 - damping) / numNodes;
+    
+	double sinksSum = 0.0;
   
     double* new_scores((double*)malloc(numNodes * sizeof(double)));
-    if (new_scores == nullptr || sinks == nullptr) {
+    if (new_scores == nullptr) {
 		printf("\nERROR: Unable to malloc temporary arrays\n");
 		abort();
     }
   
-    //#pragma omp parallel for
+    #pragma omp parallel for reduction(+:sinksSum) if(omp_get_max_threads() > 1)
     for (int i = 0; i < numNodes; ++i) {
 		solution[i] = equal_prob;
 		if (outgoing_size(g, i) == 0) {
-		//	#pragma omp capture
-			{
-				int idx = numSinks++;
-				sinks[idx] = i;
-			}
+			sinksSum += equal_prob;
 		}
     }
   
-	double prev = 0;
-	double curr = 0xDEADBEEF;
+	double curr = 0;
+	double prev = 0xDEADBEEF;
 	
 	while (fabs(curr - prev) >= convergence) {
 		prev = curr;
 		curr = 0;
-		double curr_tele_add = 0;
+		double newSinksSum = 0.0;
 		
-		#pragma omp parallel for reduction(+:curr_tele_add)
-		for (int i = 0; i < numSinks; ++i) {
-			curr_tele_add += solution[sinks[i]] * damp_coeff;
- 		}
-		//curr_tele_add *= damp_coeff;
-		
-		#pragma omp parallel for schedule(guided) reduction(+:curr)
+		#pragma omp parallel for schedule(guided) reduction(+:curr, newSinksSum) if (omp_get_max_threads() > 1)
 		for (int i = 0; i < numNodes; ++i) {
 			// Vertex* points into g.outgoing_edges[]
 			double new_score = 0;
 			const Vertex* start = incoming_begin(g, i);
 			const Vertex* end = incoming_end(g, i);
-			for (const Vertex* v = start; v != end; v++) {
-				new_score += damping * solution[*v] / outgoing_size(g, *v);
+			for (const Vertex* v = start; v != end; ++v) {
+				new_score += solution[*v] / outgoing_size(g, *v);
 			}
-			new_score = new_score + tele_coeff + curr_tele_add;
+			new_score = (damping * new_score) + stat_coeff + (damping * sinksSum * equal_prob);
+			
+			if (outgoing_size(g, i) == 0) newSinksSum += new_score;
+			
 			curr += fabs(new_score - solution[i]);
 			new_scores[i] = new_score;
 		}
+		
+		sinksSum = newSinksSum;
 		
 		#pragma omp parallel for 
 		for (int i = 0; i < numNodes; ++i) {
@@ -83,7 +78,6 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 		}
 	}
     
-	free(sinks);
 	free(new_scores);
 }  
   
