@@ -48,8 +48,8 @@ void top_down_step(
         for (int neighbor=start_edge; neighbor<end_edge; neighbor++) {
             int outgoing = g->outgoing_edges[neighbor];
 
-            if (distances[outgoing] == NOT_VISITED_MARKER && 
-				__sync_bool_compare_and_swap(&distances[outgoing], NOT_VISITED_MARKER, distances[node] + 1)) {
+            if (distances[outgoing] == NOT_VISITED_MARKER) {
+				distances[outgoing] = distances[node] + 1;
                 new_frontier->vertices[idx++] = outgoing;
             }
         }
