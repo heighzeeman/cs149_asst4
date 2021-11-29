@@ -34,7 +34,7 @@ void top_down_step(
 {
 	std::atomic<int> idx(new_frontier->count);
 	
-	#pragma omp parallel for schedule(dynamic, 1) if (omp_get_max_threads() > 1)
+	#pragma omp parallel for schedule(dynamic, 128) if (omp_get_max_threads() > 1)
     for (int i=0; i<frontier->count; i++) {
 
         int node = frontier->vertices[i];
@@ -48,7 +48,8 @@ void top_down_step(
         for (int neighbor=start_edge; neighbor<end_edge; neighbor++) {
             int outgoing = g->outgoing_edges[neighbor];
 
-            if (__sync_bool_compare_and_swap(&distances[outgoing], NOT_VISITED_MARKER, distances[node] + 1)) {
+            if (distances[outgoing] == NOT_VISITED_MARKER && 
+				__sync_bool_compare_and_swap(&distances[outgoing], NOT_VISITED_MARKER, distances[node] + 1)) {
                 new_frontier->vertices[idx++] = outgoing;
             }
         }
@@ -72,6 +73,7 @@ void bfs_top_down(Graph graph, solution* sol) {
     vertex_set* new_frontier = &list2;
 
     // initialize all nodes to NOT_VISITED
+	#pragma omp parallel for schedule(static, (64 / sizeof(int)))
     for (int i=0; i<graph->num_nodes; i++)
         sol->distances[i] = NOT_VISITED_MARKER;
 
