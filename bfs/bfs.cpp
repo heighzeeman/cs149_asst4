@@ -54,11 +54,13 @@ void top_down_step(
             }
         }
 		
-		#pragma omp critical
+		int oldcount;
+		#pragma omp atomic capture
 		{
-			for (int j = 0; j < local.count; ++j) new_frontier->vertices[new_frontier->count + j] = local.vertices[j];
-            new_frontier->count += local.count;
+			oldcount = new_frontier->count;
+			new_frontier->count += local.count;	
 		}
+		for (int j = 0; j < local.count; ++j) new_frontier->vertices[oldcount + j] = local.vertices[j];
 		
 		delete local.vertices;
     }
