@@ -1,3 +1,4 @@
+#include <atomic>
 #include "bfs.h"
 
 #include <stdio.h>
@@ -31,6 +32,8 @@ void top_down_step(
     vertex_set* new_frontier,
     int* distances)
 {
+	std::atomic<int> idx(new_frontier->count);
+	
 	#pragma omp parallel for schedule(dynamic, 1) if (omp_get_max_threads() > 1)
     for (int i=0; i<frontier->count; i++) {
 
@@ -46,13 +49,12 @@ void top_down_step(
             int outgoing = g->outgoing_edges[neighbor];
 
             if (__sync_bool_compare_and_swap(&distances[outgoing], NOT_VISITED_MARKER, distances[node] + 1)) {
-		int index;
-		#pragma omp atomic capture
-		index = new_frontier->count++;
-                new_frontier->vertices[index] = outgoing;
+                new_frontier->vertices[idx++] = outgoing;
             }
         }
     }
+	
+	new_frontier->count = idx;
 }
 
 // Implements top-down BFS.
