@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 #include <cmath>
-#define OMP_NUM_THREADS		32
+//#define OMP_NUM_THREADS		32
 #include <omp.h>
 #include <utility>
 
@@ -42,8 +42,10 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 		solution[i] = equal_prob;
 		if (outgoing_size(g, i) == 0) {
 			#pragma omp capture
-			int idx = numSinks++;
-			sinks[idx] = i;
+			{
+				int idx = numSinks++;
+				sinks[idx] = i;
+			}
 		}
     }
   
@@ -70,7 +72,7 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 			for (const Vertex* v = start; v != end; v++) {
 				new_score += solution[*v] / outgoing_size(g, *v);
 			}
-			new_score = new_score * damping + tele_coeff + curr_tele_add;
+			new_score = (new_score * damping) + tele_coeff + curr_tele_add;
 			curr += abs(new_score - solution[i]);
 			new_scores[i] = new_score;
 		}
