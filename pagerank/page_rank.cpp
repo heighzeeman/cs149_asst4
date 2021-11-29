@@ -80,13 +80,12 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 	}
 	
 	if (new_scores != origSolution) {
-		#pragma omp parallel for if (omp_get_max_threads() > 3)
+		#pragma omp parallel schedule(static, 8) for if (omp_get_max_threads() > 1)
 		for (int i = 0; i < numNodes; ++i) {
 			solution[i] = new_scores[i];
 		}
-	}
-    
-	delete new_scores;
+		delete new_scores;
+	} else delete solution;
 }  
   
   
