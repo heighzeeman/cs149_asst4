@@ -50,7 +50,7 @@ void top_down_step(
 
             if (distances[outgoing] == NOT_VISITED_MARKER) {
 				distances[outgoing] = distances[node] + 1;
-                new_frontier->vertices[idx++] = outgoing;
+                new_frontier->vertices[idx.fetch_add(1, std::memory_order_relaxed)] = outgoing;
             }
         }
     }
