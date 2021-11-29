@@ -27,21 +27,21 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
     int numNodes = num_nodes(g);
     double equal_prob = 1.0 / numNodes;
 	double damp_coeff = damping / numNodes;
-	double tele_coeff = equal_prob - damp_coeff;
-    int* sinks((int*)calloc(numNodes, sizeof(int)));
+	double tele_coeff = (1.0 - damping) / numNodes;
+    int* sinks((int*)malloc(numNodes * sizeof(int)));
     int numSinks = 0;
   
-    double* new_scores((double*)calloc(numNodes, sizeof(double)));
+    double* new_scores((double*)malloc(numNodes * sizeof(double)));
     if (new_scores == nullptr || sinks == nullptr) {
 		printf("\nERROR: Unable to malloc temporary arrays\n");
 		abort();
     }
   
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int i = 0; i < numNodes; ++i) {
 		solution[i] = equal_prob;
 		if (outgoing_size(g, i) == 0) {
-			#pragma omp capture
+		//	#pragma omp capture
 			{
 				int idx = numSinks++;
 				sinks[idx] = i;
@@ -49,10 +49,10 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 		}
     }
   
-	double curr = 0;
-	double prev = 0xDEADBEEF;
+	double prev = 0;
+	double curr = 0xDEADBEEF;
 	
-	while (abs(curr - prev) > convergence) {
+	while (fabs(curr - prev) >= convergence) {
 		prev = curr;
 		curr = 0;
 		double curr_tele_add = 0;
@@ -60,7 +60,7 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 		#pragma omp parallel for reduction(+:curr_tele_add)
 		for (int i = 0; i < numSinks; ++i) {
 			curr_tele_add += solution[sinks[i]];
-		}
+ 		}
 		curr_tele_add *= damp_coeff;
 		
 		#pragma omp parallel for schedule(guided) reduction(+:curr)
@@ -73,7 +73,7 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 				new_score += solution[*v] / outgoing_size(g, *v);
 			}
 			new_score = (new_score * damping) + tele_coeff + curr_tele_add;
-			curr += abs(new_score - solution[i]);
+			curr += fabs(new_score - solution[i]);
 			new_scores[i] = new_score;
 		}
 		
