@@ -30,14 +30,16 @@ void top_down_step(
     Graph g,
     vertex_set* frontier,
     vertex_set* new_frontier,
-    int* distances)
+    int* distances,
+	vertex_set* scratch)
 {
 	std::atomic<int> idx(new_frontier->count);
+//	int* []
 	
 	#pragma omp parallel for schedule(dynamic, 128) if (omp_get_max_threads() > 1)
     for (int i=0; i<frontier->count; i++) {
-
         int node = frontier->vertices[i];
+		vertex_set local = scratch[omp_get_thread_num()];
 
         int start_edge = g->outgoing_starts[node];
         int end_edge = (node == g->num_nodes - 1)
@@ -50,9 +52,15 @@ void top_down_step(
 
             if (distances[outgoing] == NOT_VISITED_MARKER) {
 				distances[outgoing] = distances[node] + 1;
-                new_frontier->vertices[idx.fetch_add(1, std::memory_order_relaxed)] = outgoing;
+                local.vertices[local.count++] = outgoing;
             }
         }
+		
+		#pragma omp critical
+		{
+			for (int j = 0; j < local.count; ++j) new_frontier->vertices[new_frontier->count + j] = local.vertices[j];
+            new_frontier->count += local.count;
+		}
     }
 	
 	new_frontier->count = idx;
@@ -80,6 +88,10 @@ void bfs_top_down(Graph graph, solution* sol) {
     // setup frontier with the root node
     frontier->vertices[frontier->count++] = ROOT_NODE_ID;
     sol->distances[ROOT_NODE_ID] = 0;
+	vertex_set scratch[omp_get_max_threads()];
+	for (int i = 0; i < omp_get_max_threads(); ++i) {
+		scratch[i].vertices = new int[graph->num_nodes];
+	}
 
     while (frontier->count != 0) {
 
@@ -89,7 +101,7 @@ void bfs_top_down(Graph graph, solution* sol) {
 
         vertex_set_clear(new_frontier);
 
-        top_down_step(graph, frontier, new_frontier, sol->distances);
+        top_down_step(graph, frontier, new_frontier, sol->distances, scratch);
 
 #ifdef VERBOSE
     double end_time = CycleTimer::currentSeconds();
@@ -101,6 +113,9 @@ void bfs_top_down(Graph graph, solution* sol) {
         frontier = new_frontier;
         new_frontier = tmp;
     }
+	
+	for (int i = 0; i < omp_get_max_threads(); ++i)
+		delete[] scratch[i].vertices;
 }
 
 void bfs_bottom_up(Graph graph, solution* sol)
