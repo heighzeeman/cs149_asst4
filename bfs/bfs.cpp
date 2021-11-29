@@ -53,15 +53,13 @@ void top_down_step(
 				local.vertices[local.count++] = outgoing;
 			}
         }
-		int oldcount;
-		#pragma omp atomic capture
-		{
-			oldcount = new_frontier->count;
-			new_frontier->count += local.count;
-		}
-		
-		for (int j = 0; j < local.count; ++j) new_frontier->vertices[oldcount + j] = local.vertices[j];
     }
+	
+	for (int i = 0; i < omp_get_max_threads(); ++i) {
+		vertex_set local = scratch[i];
+		for (int j = 0; j < local.count; ++j)
+			new_frontier->vertices[new_frontier->count++] = local.vertices[j];
+	}
 	
 }
 
