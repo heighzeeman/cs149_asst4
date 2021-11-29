@@ -49,7 +49,7 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 		double diff = 0.0;
 		double newSinksSum = 0.0;
 		
-		#pragma omp parallel for schedule(dynamic, 16) reduction(+:diff, newSinksSum) if (omp_get_max_threads() > 1)
+		#pragma omp parallel for schedule(dynamic, 32) reduction(+:diff, newSinksSum) if (omp_get_max_threads() > 1)
 		for (int i = 0; i < numNodes; ++i) {
 			// Vertex* points into g.outgoing_edges[]
 			double new_score = 0;
