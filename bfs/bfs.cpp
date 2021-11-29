@@ -32,8 +32,6 @@ void top_down_step(
     vertex_set* new_frontier,
     int* distances)
 {
-	std::atomic<int> idx(new_frontier->count);
-	
 	#pragma omp parallel for schedule(dynamic, 128) if (omp_get_max_threads() > 1)
     for (int i=0; i<frontier->count; i++) {
         int node = frontier->vertices[i];
@@ -64,8 +62,6 @@ void top_down_step(
 		
 		delete local.vertices;
     }
-	
-	new_frontier->count = idx;
 }
 
 // Implements top-down BFS.
