@@ -36,7 +36,7 @@ void top_down_step(
 //	std::atomic<int> idx(new_frontier->count);
 //	int* []
 	
-	#pragma omp parallel for schedule(dynamic, 128) if (omp_get_max_threads() > 1)
+	#pragma omp parallel for schedule(dynamic, 32) if (omp_get_max_threads() > 1)
     for (int i=0; i<frontier->count; i++) {
         int node = frontier->vertices[i];
 		vertex_set local = scratch[omp_get_thread_num()];
@@ -47,6 +47,7 @@ void top_down_step(
                            : g->outgoing_starts[node + 1];
 
         // attempt to add all neighbors to the new frontier
+	#pragma omp parallel for if (omp_get_max_threads() > 1)
         for (int neighbor=start_edge; neighbor<end_edge; neighbor++) {
             int outgoing = g->outgoing_edges[neighbor];
 
