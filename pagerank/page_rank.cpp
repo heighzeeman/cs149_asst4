@@ -23,7 +23,8 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 
   // initialize vertex weights to uniform probability. Double
   // precision scores are used to avoid underflow for large graphs
-
+	double* origSolution = solution;
+	
     int numNodes = num_nodes(g);
     double equal_prob = 1.0 / numNodes;
 	double damp_coeff = damping / numNodes;
@@ -48,11 +49,11 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
   
 	bool done = false;
 	
-	while (!done) {
+	while (true) {
 		double diff = 0.0;
 		double newSinksSum = 0.0;
 		
-		#pragma omp parallel for schedule(guided) reduction(+:diff, newSinksSum) if (omp_get_max_threads() > 1)
+		#pragma omp parallel for schedule(dynamic, 32) reduction(+:diff, newSinksSum) if (omp_get_max_threads() > 1)
 		for (int i = 0; i < numNodes; ++i) {
 			// Vertex* points into g.outgoing_edges[]
 			double new_score = 0;
@@ -69,10 +70,16 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 			new_scores[i] = new_score;
 		}
 		
-		if (diff < convergence) done = true;
+		if (diff < convergence) break;
 		
 		sinksSum = newSinksSum * damp_coeff;
 		
+		double *temp = solution;
+		solution = new_scores;
+		new_scores = temp;
+	}
+	
+	if (new_scores != origSolution) {
 		#pragma omp parallel for if (omp_get_max_threads() > 3)
 		for (int i = 0; i < numNodes; ++i) {
 			solution[i] = new_scores[i];
