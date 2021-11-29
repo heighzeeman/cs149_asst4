@@ -44,7 +44,6 @@ void top_down_step(
                            : g->outgoing_starts[node + 1];
 
         // attempt to add all neighbors to the new frontier
-		#pragma omp parallel for schedule(dynamic, 16) if (omp_get_max_threads() > 1)
         for (int neighbor=start_edge; neighbor<end_edge; neighbor++) {
             int outgoing = g->outgoing_edges[neighbor];
 
