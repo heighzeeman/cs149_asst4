@@ -31,29 +31,25 @@ void pageRank(Graph g, double* solution, double damping, double convergence)
 	double stat_coeff = (1.0 - damping) / numNodes;
     
 	double sinksSum = 0.0;
+	int numSinks = 0;
   
     double* new_scores(new double[numNodes]);
-    if (new_scores == nullptr) {
-		printf("\nERROR: Unable to malloc temporary arrays\n");
-		abort();
-    }
   
-    #pragma omp parallel for reduction(+:sinksSum) if(omp_get_max_threads() > 1)
+    #pragma omp parallel for if(omp_get_max_threads() > 1)
     for (int i = 0; i < numNodes; ++i) {
 		solution[i] = equal_prob;
 		if (outgoing_size(g, i) == 0) {
-			sinksSum += equal_prob;
+			#pragma omp atomic
+			++numSinks;
 		}
     }
-	sinksSum *= damp_coeff;
-  
-	bool done = false;
+	sinksSum = damp_coeff * numSinks;
 	
 	while (true) {
 		double diff = 0.0;
 		double newSinksSum = 0.0;
 		
-		#pragma omp parallel for schedule(dynamic, 32) reduction(+:diff, newSinksSum) if (omp_get_max_threads() > 1)
+		#pragma omp parallel for schedule(dynamic, 16) reduction(+:diff, newSinksSum) if (omp_get_max_threads() > 1)
 		for (int i = 0; i < numNodes; ++i) {
 			// Vertex* points into g.outgoing_edges[]
 			double new_score = 0;
