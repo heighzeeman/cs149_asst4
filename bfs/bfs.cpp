@@ -238,7 +238,7 @@ void bfs_bottom_up(Graph graph, solution* sol)
 #ifdef VERBOSE
 		printf("Beginning bottom up step iteration %d:\n", iter);
 #endif
-        done = bottom_up_step(graph, sol->distances, iter++);
+        done = !bottom_up_step(graph, sol->distances, iter++);
 
 #ifdef VERBOSE
     double end_time = CycleTimer::currentSeconds();
