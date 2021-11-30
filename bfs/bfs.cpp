@@ -160,7 +160,7 @@ int bottom_up_step(
 {	
 	int result = 0;
 	int counts[omp_get_max_threads()];
-	for (int i = 0; i < omp_get_thread_num(); ++i) {
+	for (int i = 0; i < omp_get_max_threads(); ++i) {
 		counts[i] = 0;
 	}
 	
@@ -187,7 +187,7 @@ int bottom_up_step(
 		}
     }
 	
-	for (int i = 0; i < omp_get_thread_num(); ++i) {
+	for (int i = 0; i < omp_get_max_threads(); ++i) {
 		result += counts[i];
 	}
 	
