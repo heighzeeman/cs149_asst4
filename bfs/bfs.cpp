@@ -14,6 +14,8 @@
 #define NOT_VISITED_MARKER -1
 #define BUC 256
 
+#define THRESHOLD 12800000
+
 //#define VERBOSE
 
 void vertex_set_clear(vertex_set* list) {
@@ -160,7 +162,7 @@ bool bottom_up_step(
 //	vertex_set* scratch,
 	int iter)
 {	
-/*	int result = 0;
+	/*int result = 0;
 	int counts[omp_get_max_threads()];
 	for (int i = 0; i < omp_get_max_threads(); ++i) {
 		counts[i] = 0;
@@ -196,8 +198,8 @@ bool bottom_up_step(
 			}
 		}
     }
-	/*
-	for (int i = 0; i < omp_get_max_threads(); ++i) {
+
+	/*for (int i = 0; i < omp_get_max_threads(); ++i) {
 		result += counts[i];
 	}*/
 #ifdef VERBOSE	
@@ -271,8 +273,79 @@ void bfs_bottom_up(Graph graph, solution* sol)
 
 void bfs_hybrid(Graph graph, solution* sol)
 {
-    // CS149 students:
-    //
-    // You will need to implement the "hybrid" BFS here as
-    // described in the handout.
+	vertex_set list1;
+    vertex_set list2;
+    vertex_set_init(&list1, graph->num_nodes);
+    vertex_set_init(&list2, graph->num_nodes);
+
+    vertex_set* frontier = &list1;
+    vertex_set* new_frontier = &list2;
+// initialize all nodes to NOT_VISITED
+	#pragma omp parallel for schedule(static, (64 / sizeof(int)))
+    for (int i=0; i<graph->num_nodes; i++)
+        sol->distances[i] = NOT_VISITED_MARKER;
+
+    // setup frontier with the root node
+    frontier->vertices[frontier->count++] = ROOT_NODE_ID;
+    sol->distances[ROOT_NODE_ID] = 0;
+	vertex_set scratch[omp_get_max_threads()];
+	for (int i = 0; i < omp_get_max_threads(); ++i) {
+		scratch[i].vertices = new int[graph->num_nodes];
+		scratch[i].count = 0;
+	}
+
+	int iter = 0;
+	bool done = false;
+	bool prev_btm_bfs = false;
+	int added = graph->num_nodes;
+	
+    while (!done) {
+		if (added < THRESHOLD) {
+			if (prev_btm_bfs) {
+				frontier->count = 0;
+				#pragma omp parallel for schedule(static) if (omp_get_max_threads() > 1)
+				for (int i = 0; i < omp_get_max_threads(); ++i) scratch[i].count = 0;
+				
+				#pragma omp parallel for schedule(static) if (omp_get_max_threads() > 1)
+				for (int i=0; i < graph->num_nodes; ++i) {
+					vertex_set& local = scratch[omp_get_thread_num()];
+					if (sol->distances[i] == iter - 1) {									   
+						local.vertices[local.count++] = i;
+					}
+				}
+				#pragma omp parallel for schedule(static) if (omp_get_max_threads() > 1)
+				for (int i = 0; i < omp_get_max_threads(); ++i) {
+					vertex_set& local = scratch[i];
+					int start;
+					#pragma omp atomic capture
+					{
+						start = frontier->count;
+						frontier->count += local.count;
+					}
+
+					for (int j = 0; j < local.count; ++j) {
+						new_frontier->vertices[start + j] = local.vertices[j];
+					}
+					
+					local.count = 0;
+				}
+				
+				if (frontier->count != added) printf("ERROR: Sanity check fail\n");
+			}
+			vertex_set_clear(new_frontier);
+			top_down_step(graph, frontier, new_frontier, sol->distances, scratch);
+			if (new_frontier->count == 0) break;
+		// swap pointers
+			vertex_set* tmp = frontier;
+			frontier = new_frontier;
+			new_frontier = tmp;
+			prev_btm_bfs = false;
+		} else {
+			done = !bottom_up_step(graph, sol->distances, iter);
+			prev_btm_bfs = true;
+		}
+		++iter;
+	}
+	for (int i = 0; i < omp_get_max_threads(); ++i)
+		delete[] scratch[i].vertices;
 }
