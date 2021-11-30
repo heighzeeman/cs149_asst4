@@ -74,13 +74,20 @@ void top_down_step(
 		local.count = 0;*/
     }
 	
+	#pragma omp parallel for schedule(static) if (omp_get_max_threads() > 1)
 	for (int i = 0; i < omp_get_max_threads(); ++i) {
 		vertex_set& local = scratch[i];
+		int start;
+		#pragma omp atomic capture
+		{
+			start = new_frontier->count;
+			new_frontier->count += local.count;
+		}
 		#ifdef VERBOSE
 		printf("Loading buffer %d at addr %p, count %d\n", i, &scratch[i], local.count);
 		#endif
 		for (int j = 0; j < local.count; ++j) {
-			new_frontier->vertices[new_frontier->count++] = local.vertices[j];
+			new_frontier->vertices[start + j] = local.vertices[j];
 		}
 		local.count = 0;
 	}
