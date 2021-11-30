@@ -56,7 +56,7 @@ void top_down_step(
 				distances[outgoing] = distances[node] + 1;
 				local.vertices[local.count++] = outgoing;
 				#ifdef VERBOSE
-				printf("Node %d edge %d neighbor_vert %d added to buffer %d with curr distance %d, count %d\n", node, neighbor, outgoing, omp_get_thread_num(), distances[node] + 1, local.count);
+				printf("Node %d edge %d neighbor_vert %d added to buffer %d at addr %p with curr distance %d, count %d\n", node, neighbor, outgoing, omp_get_thread_num(), &scratch[omp_get_thread_num()], distances[node] + 1, local.count);
 				#endif
 			}
         }
@@ -76,7 +76,7 @@ void top_down_step(
 	
 	for (int i = 0; i < omp_get_max_threads(); ++i) {
 		vertex_set local = scratch[i];
-		printf("Loading buffer %d, count %d\n", i, local.count);
+		printf("Loading buffer %d at addr %p, count %d\n", i, &scratch[i], local.count);
 		for (int j = 0; j < local.count; ++j) {
 			new_frontier->vertices[new_frontier->count + j] = local.vertices[j];
 		}
