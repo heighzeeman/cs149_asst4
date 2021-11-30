@@ -13,7 +13,7 @@
 #define ROOT_NODE_ID 0
 #define NOT_VISITED_MARKER -1
 
-#define VERBOSE
+//#define VERBOSE
 
 void vertex_set_clear(vertex_set* list) {
     list->count = 0;
@@ -76,7 +76,9 @@ void top_down_step(
 	
 	for (int i = 0; i < omp_get_max_threads(); ++i) {
 		vertex_set& local = scratch[i];
+		#ifdef VERBOSE
 		printf("Loading buffer %d at addr %p, count %d\n", i, &scratch[i], local.count);
+		#endif
 		for (int j = 0; j < local.count; ++j) {
 			new_frontier->vertices[new_frontier->count++] = local.vertices[j];
 		}
