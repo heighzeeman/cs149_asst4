@@ -13,6 +13,8 @@
 #define ROOT_NODE_ID 0
 #define NOT_VISITED_MARKER -1
 
+#define VERBOSE
+
 void vertex_set_clear(vertex_set* list) {
     list->count = 0;
 }
@@ -33,6 +35,10 @@ void top_down_step(
     int* distances,
 	vertex_set* scratch)
 {	
+
+	#ifdef VERBOSE
+	printf("Top down step with %d OpenMP iters = front\n", frontier->count);
+	#endif
 	#pragma omp parallel for schedule(dynamic, 128) if (omp_get_max_threads() > 1)
     for (int i=0; i<frontier->count; i++) {
         int node = frontier->vertices[i];
@@ -45,15 +51,17 @@ void top_down_step(
         // attempt to add all neighbors to the new frontier
         for (int neighbor=start_edge; neighbor<end_edge; neighbor++) {
             int outgoing = g->outgoing_edges[neighbor];
-
 			if (distances[outgoing] == NOT_VISITED_MARKER)/* && 
 			__sync_bool_compare_and_swap(&distances[outgoing], NOT_VISITED_MARKER, distances[node]+1))*/ {
 				distances[outgoing] = distances[node] + 1;
 				local.vertices[local.count++] = outgoing;
+				#ifdef VERBOSE
+				printf("Node %d edge %d neighbor_vert %d added to new frontier with curr distance %d, count %d\n", node, neighbor, outgoing, distances[node] + 1, local.count);
+				#endif
 			}
         }
 		
-		int localcount;
+		/*int localcount;
 		#pragma omp atomic capture
 		{
 			localcount = new_frontier->count;
@@ -63,15 +71,16 @@ void top_down_step(
 		for (int j = 0; j < local.count; ++j)
 			new_frontier->vertices[localcount + j] = local.vertices[j];
 			
-		local.count = 0;
+		local.count = 0;*/
     }
 	
-	/*for (int i = 0; i < omp_get_max_threads(); ++i) {
+	for (int i = 0; i < omp_get_max_threads(); ++i) {
 		vertex_set local = scratch[i];
-		for (int j = 0; j < local.count; ++j)
-			new_frontier->vertices[new_frontier->count++] = local.vertices[j];
+		for (int j = 0; j < local.count; ++j) {
+			new_frontier->vertices[new_frontier->count + j] = local.vertices[j];
+		}
 		local.count = 0;
-	}*/
+	}
 }
 
 // Implements top-down BFS.
@@ -102,6 +111,9 @@ void bfs_top_down(Graph graph, solution* sol) {
 		scratch[i].count = 0;
 	}
 
+#ifdef VERBOSE
+	int iter = 1;
+#endif
     while (frontier->count != 0) {
 
 #ifdef VERBOSE
@@ -109,7 +121,9 @@ void bfs_top_down(Graph graph, solution* sol) {
 #endif
 
         vertex_set_clear(new_frontier);
-
+#ifdef VERBOSE
+		printf("Beginning top down step iteration %d:\n", iter);
+#endif
         top_down_step(graph, frontier, new_frontier, sol->distances, scratch);
 
 #ifdef VERBOSE
