@@ -149,6 +149,7 @@ void bfs_top_down(Graph graph, solution* sol) {
 		delete[] scratch[i].vertices;
 }
 
+#define VERBOSE
 
 int bottom_up_step(
     Graph g,
@@ -169,8 +170,10 @@ int bottom_up_step(
 	#endif
 	#pragma omp parallel for schedule(dynamic, 128) if (omp_get_max_threads() > 1)
     for (int i=0; i < g->num_nodes; ++i) {
-		int local = 0;
 		if (distances[i] == NOT_VISITED_MARKER) {
+			#ifdef VERBOSE
+			printf("Thread %d: Vertex %d not visited\n", omp_get_thread_num(), i);
+			#endif
 			int start_edge = g->incoming_starts[i];
 			int end_edge = (i == g->num_nodes - 1)
                            ? g->num_edges
@@ -179,6 +182,9 @@ int bottom_up_step(
 			for (int neighbor = start_edge; neighbor < end_edge; neighbor++) {
 				int incoming = g->incoming_edges[neighbor];
 				if (distances[incoming] == iter) {
+					#ifdef VERBOSE
+					printf("Thread %d: Vertex %d has incoming vertex %d, now visited. Distance to %d\n", omp_get_thread_num(), i, incoming, iter + 1);
+					#endif
 					distances[i] = iter + 1;
 					++counts[omp_get_thread_num()];
 					break;
@@ -191,6 +197,7 @@ int bottom_up_step(
 		result += counts[i];
 	}
 	
+	printf("Iter %d, returning %d\n", iter, result);
 	return result;
 }
 
