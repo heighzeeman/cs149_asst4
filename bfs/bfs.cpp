@@ -42,7 +42,7 @@ void top_down_step(
 	#pragma omp parallel for schedule(dynamic, 128) if (omp_get_max_threads() > 1)
     for (int i=0; i<frontier->count; i++) {
         int node = frontier->vertices[i];
-		vertex_set local = scratch[omp_get_thread_num()];
+		vertex_set& local = scratch[omp_get_thread_num()];
         int start_edge = g->outgoing_starts[node];
         int end_edge = (node == g->num_nodes - 1)
                            ? g->num_edges
@@ -75,7 +75,7 @@ void top_down_step(
     }
 	
 	for (int i = 0; i < omp_get_max_threads(); ++i) {
-		vertex_set local = scratch[i];
+		vertex_set local& = scratch[i];
 		printf("Loading buffer %d at addr %p, count %d\n", i, &scratch[i], local.count);
 		for (int j = 0; j < local.count; ++j) {
 			new_frontier->vertices[new_frontier->count + j] = local.vertices[j];
