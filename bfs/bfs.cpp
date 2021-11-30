@@ -75,10 +75,10 @@ void top_down_step(
     }
 	
 	for (int i = 0; i < omp_get_max_threads(); ++i) {
-		vertex_set local& = scratch[i];
+		vertex_set& local = scratch[i];
 		printf("Loading buffer %d at addr %p, count %d\n", i, &scratch[i], local.count);
 		for (int j = 0; j < local.count; ++j) {
-			new_frontier->vertices[new_frontier->count + j] = local.vertices[j];
+			new_frontier->vertices[new_frontier->count++] = local.vertices[j];
 		}
 		local.count = 0;
 	}
