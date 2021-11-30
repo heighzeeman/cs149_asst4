@@ -56,7 +56,7 @@ void top_down_step(
 				distances[outgoing] = distances[node] + 1;
 				local.vertices[local.count++] = outgoing;
 				#ifdef VERBOSE
-				printf("Node %d edge %d neighbor_vert %d added to new frontier with curr distance %d, count %d\n", node, neighbor, outgoing, distances[node] + 1, local.count);
+				printf("Node %d edge %d neighbor_vert %d added to buffer %d with curr distance %d, count %d\n", node, neighbor, outgoing, omp_get_thread_num(), distances[node] + 1, local.count);
 				#endif
 			}
         }
