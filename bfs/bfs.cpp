@@ -52,14 +52,26 @@ void top_down_step(
 				local.vertices[local.count++] = outgoing;
 			}
         }
+		
+		int localcount;
+		#pragma omp atomic capture
+		{
+			localcount = new_frontier->count;
+			new_frontier->count += local.count;
+		}
+		
+		for (int j = 0; j < local.count; ++j)
+			new_frontier->vertices[localcount + j] = local.vertices[j];
+			
+		local.count = 0;
     }
 	
-	for (int i = 0; i < omp_get_max_threads(); ++i) {
+	/*for (int i = 0; i < omp_get_max_threads(); ++i) {
 		vertex_set local = scratch[i];
 		for (int j = 0; j < local.count; ++j)
 			new_frontier->vertices[new_frontier->count++] = local.vertices[j];
 		local.count = 0;
-	}
+	}*/
 }
 
 // Implements top-down BFS.
