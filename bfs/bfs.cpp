@@ -149,8 +149,101 @@ void bfs_top_down(Graph graph, solution* sol) {
 		delete[] scratch[i].vertices;
 }
 
+
+int bottom_up_step(
+    Graph g,
+//    vertex_set* frontier,
+//    vertex_set* new_frontier,
+    int* distances,
+//	vertex_set* scratch,
+	int iter)
+{	
+	int result = 0;
+	int counts[omp_get_max_threads()];
+	for (int i = 0; i < omp_get_thread_num(); ++i) {
+		counts[i] = 0;
+	}
+	
+	#ifdef VERBOSE
+	printf("Bottom up step with %d OpenMP iters = front\n", iter);
+	#endif
+	#pragma omp parallel for schedule(dynamic, 128) if (omp_get_max_threads() > 1)
+    for (int i=0; i < g->num_nodes; ++i) {
+		int local = 0;
+		if (distances[i] == NOT_VISITED_MARKER) {
+			int start_edge = g->incoming_starts[i];
+			int end_edge = (i == g->num_nodes - 1)
+                           ? g->num_edges
+                           : g->incoming_starts[i + 1];
+						   
+			for (int neighbor = start_edge; neighbor < end_edge; neighbor++) {
+				int incoming = g->incoming_edges[neighbor];
+				if (distances[incoming] == iter) {
+					distances[i] = iter + 1;
+					++counts[omp_get_thread_num()];
+					break;
+				}
+			}
+		}
+    }
+	
+	for (int i = 0; i < omp_get_thread_num(); ++i) {
+		result += counts[i];
+	}
+	
+	return result;
+}
+
+
 void bfs_bottom_up(Graph graph, solution* sol)
 {
+/*    vertex_set list1;
+    vertex_set list2;
+    vertex_set_init(&list1, graph->num_nodes);
+    vertex_set_init(&list2, graph->num_nodes);
+
+    vertex_set* frontier = &list1;
+    vertex_set* new_frontier = &list2;*/
+
+    // initialize all nodes to NOT_VISITED
+	#pragma omp parallel for schedule(static, (64 / sizeof(int)))
+    for (int i=0; i<graph->num_nodes; i++)
+        sol->distances[i] = NOT_VISITED_MARKER;
+
+    // setup frontier with the root node
+//    frontier->vertices[frontier->count++] = ROOT_NODE_ID;
+    sol->distances[ROOT_NODE_ID] = 0;
+/*	vertex_set scratch[omp_get_max_threads()];
+	for (int i = 0; i < omp_get_max_threads(); ++i) {
+		scratch[i].vertices = new int[graph->num_nodes];
+		scratch[i].count = 0;
+	}*/
+	int iter = 0;
+	bool done = false;
+	
+    while (!done) {
+
+#ifdef VERBOSE
+        double start_time = CycleTimer::currentSeconds();
+#endif
+
+//        vertex_set_clear(new_frontier);
+#ifdef VERBOSE
+		printf("Beginning bottom up step iteration %d:\n", iter);
+#endif
+        done = bottom_up_step(graph, sol->distances, iter++);
+
+#ifdef VERBOSE
+    double end_time = CycleTimer::currentSeconds();
+    //printf("frontier=%-10d %.4f sec\n", frontier->count, end_time - start_time);
+#endif        // swap pointers
+    /*    vertex_set* tmp = frontier;
+        frontier = new_frontier;
+        new_frontier = tmp;*/
+    }
+	
+	//for (int i = 0; i < omp_get_max_threads(); ++i)
+	//	delete[] scratch[i].vertices;
     // CS149 students:
     //
     // You will need to implement the "bottom up" BFS here as
