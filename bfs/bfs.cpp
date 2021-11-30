@@ -154,7 +154,7 @@ void bfs_top_down(Graph graph, solution* sol) {
 
 //#define VERBOSE
 
-int bottom_up_step(
+bool bottom_up_step(
     Graph g,
 //    vertex_set* frontier,
 //    vertex_set* new_frontier,
@@ -162,12 +162,12 @@ int bottom_up_step(
 //	vertex_set* scratch,
 	int iter)
 {	
-	int result = 0;
+	/*int result = 0;
 	int counts[omp_get_max_threads()];
 	for (int i = 0; i < omp_get_max_threads(); ++i) {
 		counts[i] = 0;
-	}
-	//bool result = false;
+	}*/
+	bool result = false;
 	
 	#ifdef VERBOSE
 	printf("Bottom up step with %d OpenMP iters = front\n", iter);
@@ -191,17 +191,17 @@ int bottom_up_step(
 					printf("Thread %d: Vertex %d has incoming vertex %d, now visited. Distance to %d\n", omp_get_thread_num(), i, incoming, iter + 1);
 					#endif
 					distances[i] = iter + 1;
-					//if (!result) result = true;
-					++counts[omp_get_thread_num()];
+					if (!result) result = true;
+					//++counts[omp_get_thread_num()];
 					break;
 				}
 			}
 		}
     }
 
-	for (int i = 0; i < omp_get_max_threads(); ++i) {
+	/*for (int i = 0; i < omp_get_max_threads(); ++i) {
 		result += counts[i];
-	}
+	}*/
 #ifdef VERBOSE	
 	printf("Iter %d, returning %d\n", iter, result);
 #endif
@@ -273,6 +273,8 @@ void bfs_bottom_up(Graph graph, solution* sol)
 
 void bfs_hybrid(Graph graph, solution* sol)
 {
+	bfs_top_down(graph, sol);
+	/*
 	vertex_set list1;
     vertex_set list2;
     vertex_set_init(&list1, graph->num_nodes);
@@ -340,12 +342,12 @@ void bfs_hybrid(Graph graph, solution* sol)
 			prev_btm_bfs = false;
 			added = frontier->count;
 		} else {
-			added = bottom_up_step(graph, sol->distances, iter);
+			done = !bottom_up_step(graph, sol->distances, iter);
 			prev_btm_bfs = true;
 		}
-		done = !added;
 		++iter;
 	}
 	for (int i = 0; i < omp_get_max_threads(); ++i)
 		delete[] scratch[i].vertices;
+	*/
 }
