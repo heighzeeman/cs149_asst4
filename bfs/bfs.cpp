@@ -60,7 +60,6 @@ void top_down_step(
 			new_frontier->vertices[new_frontier->count++] = local.vertices[j];
 		local.count = 0;
 	}
-	
 }
 
 // Implements top-down BFS.
@@ -88,6 +87,7 @@ void bfs_top_down(Graph graph, solution* sol) {
 	vertex_set scratch[omp_get_max_threads()];
 	for (int i = 0; i < omp_get_max_threads(); ++i) {
 		scratch[i].vertices = new int[graph->num_edges];
+		scratch[i].count = 0;
 	}
 
     while (frontier->count != 0) {
@@ -103,9 +103,7 @@ void bfs_top_down(Graph graph, solution* sol) {
 #ifdef VERBOSE
     double end_time = CycleTimer::currentSeconds();
     printf("frontier=%-10d %.4f sec\n", frontier->count, end_time - start_time);
-#endif
-
-        // swap pointers
+#endif        // swap pointers
         vertex_set* tmp = frontier;
         frontier = new_frontier;
         new_frontier = tmp;
