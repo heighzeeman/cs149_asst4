@@ -37,7 +37,6 @@ void top_down_step(
     for (int i=0; i<frontier->count; i++) {
         int node = frontier->vertices[i];
 		vertex_set local = scratch[omp_get_thread_num()];
-		local.count = 0;
         int start_edge = g->outgoing_starts[node];
         int end_edge = (node == g->num_nodes - 1)
                            ? g->num_edges
@@ -59,6 +58,7 @@ void top_down_step(
 		vertex_set local = scratch[i];
 		for (int j = 0; j < local.count; ++j)
 			new_frontier->vertices[new_frontier->count++] = local.vertices[j];
+		local.count = 0;
 	}
 	
 }
