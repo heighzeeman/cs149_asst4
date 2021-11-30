@@ -60,7 +60,6 @@ void top_down_step(
 			new_frontier->vertices[new_frontier->count++] = local.vertices[j];
 		local.count = 0;
 	}
-	
 }
 
 // Implements top-down BFS.
@@ -87,7 +86,8 @@ void bfs_top_down(Graph graph, solution* sol) {
     sol->distances[ROOT_NODE_ID] = 0;
 	vertex_set scratch[omp_get_max_threads()];
 	for (int i = 0; i < omp_get_max_threads(); ++i) {
-		scratch[i].vertices = new int[graph->num_nodes];
+		scratch[i].vertices = new int[graph->num_edges];
+		scratch[i].count = 0;
 	}
 
     while (frontier->count != 0) {
